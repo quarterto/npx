@@ -11,7 +11,7 @@ function mockParse () {
 test('parses basic command', t => {
   const parsed = mockParse('foo')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['foo@latest'])
+  t.deepEqual(parsed.package, ['foo'])
   t.equal(parsed.packageRequested, false)
   t.equal(parsed.cmdHadVersion, false)
   t.equal(parsed.npm, 'npm')
@@ -31,7 +31,7 @@ test('parses command with version', t => {
 test('parses command opts', t => {
   const parsed = mockParse('foo', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['foo@latest'])
+  t.deepEqual(parsed.package, ['foo'])
   t.equal(parsed.packageRequested, false)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -41,7 +41,7 @@ test('parses command opts', t => {
 test('parses scoped package command opts', t => {
   const parsed = mockParse('@user/foo', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['@user/foo@latest'])
+  t.deepEqual(parsed.package, ['@user/foo'])
   t.equal(parsed.packageRequested, false)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -51,7 +51,7 @@ test('parses scoped package command opts', t => {
 test('ignores options after command', t => {
   const parsed = mockParse('foo', '-p', 'bar', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['foo@latest'])
+  t.deepEqual(parsed.package, ['foo'])
   t.equal(parsed.packageRequested, false)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['-p', 'bar', 'a', 'b'])
@@ -61,7 +61,7 @@ test('ignores options after command', t => {
 test('assumes unknown args before cmd have values and ignores them', t => {
   const parsed = mockParse('-p', 'bar', '--blahh', 'arg', '--ignore-existing', 'foo', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['bar@latest'])
+  t.deepEqual(parsed.package, ['bar'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -71,7 +71,7 @@ test('assumes unknown args before cmd have values and ignores them', t => {
 test('parses package option', t => {
   const parsed = mockParse('-p', 'bar', 'foo', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['bar@latest'])
+  t.deepEqual(parsed.package, ['bar'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -81,7 +81,7 @@ test('parses package option', t => {
 test('parses multiple package options', t => {
   const parsed = mockParse('-p', 'baz@1.2.3', '-p', 'bar', 'foo', 'a', 'b')
   t.equal(parsed.command, 'foo')
-  t.deepEqual(parsed.package, ['baz@1.2.3', 'bar@latest'])
+  t.deepEqual(parsed.package, ['baz@1.2.3', 'bar'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -101,7 +101,7 @@ test('does not parse -c', t => {
 test('uses -p even with -c', t => {
   const parsed = mockParse('-c', 'foo a b', '-p', 'bar')
   t.deepEqual(parsed.command, null)
-  t.deepEqual(parsed.package, ['bar@latest'])
+  t.deepEqual(parsed.package, ['bar'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, null)
@@ -111,7 +111,7 @@ test('uses -p even with -c', t => {
 test('-p prevents command parsing', t => {
   const parsed = mockParse('-p', 'pkg', 'foo@1.2.3', 'a', 'b')
   t.equal(parsed.command, 'foo@1.2.3')
-  t.deepEqual(parsed.package, ['pkg@latest'])
+  t.deepEqual(parsed.package, ['pkg'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -121,7 +121,7 @@ test('-p prevents command parsing', t => {
 test('-- stops option parsing but still does command', t => {
   const parsed = mockParse('--', '-foo', 'a', 'b')
   t.equal(parsed.command, '-foo')
-  t.deepEqual(parsed.package, ['-foo@latest'])
+  t.deepEqual(parsed.package, ['-foo'])
   t.equal(parsed.packageRequested, false)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -131,7 +131,7 @@ test('-- stops option parsing but still does command', t => {
 test('-- still respects -p', t => {
   const parsed = mockParse('-p', 'bar', '--', '-foo', 'a', 'b')
   t.equal(parsed.command, '-foo')
-  t.deepEqual(parsed.package, ['bar@latest'])
+  t.deepEqual(parsed.package, ['bar'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.deepEqual(parsed.cmdOpts, ['a', 'b'])
@@ -154,7 +154,7 @@ test('treats directory-type commands specially', t => {
   parsed = mockParse('-p', 'x', '../foo/bar.sh')
   t.equal(parsed.command, '../foo/bar.sh')
   t.ok(parsed.isLocal)
-  t.deepEqual(parsed.package, ['x@latest'])
+  t.deepEqual(parsed.package, ['x'])
   t.equal(parsed.packageRequested, true)
   t.equal(parsed.cmdHadVersion, false)
   t.done()

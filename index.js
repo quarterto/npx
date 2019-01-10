@@ -33,10 +33,11 @@ function npx (argv) {
   }
 
   const startTime = Date.now()
+  const cwd = process.cwd()
 
   // First, we look to see if we're inside an npm project, and grab its
   // bin path. This is exactly the same as running `$ npm bin`.
-  return localBinPath(process.cwd()).then(local => {
+  return localBinPath(cwd).then(local => {
     if (local) {
       // Local project paths take priority. Go ahead and prepend it.
       process.env.PATH = `${local}${path.delimiter}${process.env.PATH}`
@@ -70,38 +71,40 @@ function npx (argv) {
           } catch (e) {}
         }
         // Some npm packages need to be installed. Let's install them!
-        return ensurePackages(argv.package, argv).then(results => {
-          if (results && results.added && results.updated && !argv.q) {
-            console.error(Y()`npx: installed ${
-              results.added.length + results.updated.length
-            } in ${(Date.now() - startTime) / 1000}s`)
-          }
-          if (
-            argv.command &&
-            !existing &&
-            !argv.packageRequested &&
-            argv.package.length === 1
-          ) {
-            return promisify(fs.readdir)(results.bin).then(bins => {
-              if (process.platform === 'win32') {
-                bins = bins.filter(b => b !== 'etc' && b !== 'node_modules')
-              }
-              if (bins.length < 1) {
-                throw new Error(Y()`command not found: ${argv.command}`)
-              }
-              const cmd = new RegExp(`^${argv.command}(?:\\.cmd)?$`, 'i')
-              const matching = bins.find(b => b.match(cmd))
-              return path.resolve(results.bin, bins[matching] || bins[0])
-            }, err => {
-              if (err.code === 'ENOENT') {
-                throw new Error(Y()`command not found: ${argv.command}`)
-              } else {
-                throw err
-              }
-            })
-          } else {
-            return existing
-          }
+        return appendVersions(argv.package, cwd, argv).then(specs => {
+          return ensurePackages(specs, argv).then(results => {
+            if (results && results.added && results.updated && !argv.q) {
+              console.error(Y()`npx: installed ${
+                results.added.length + results.updated.length
+              } in ${(Date.now() - startTime) / 1000}s`)
+            }
+            if (
+              argv.command &&
+              !existing &&
+              !argv.packageRequested &&
+              argv.package.length === 1
+            ) {
+              return promisify(fs.readdir)(results.bin).then(bins => {
+                if (process.platform === 'win32') {
+                  bins = bins.filter(b => b !== 'etc' && b !== 'node_modules')
+                }
+                if (bins.length < 1) {
+                  throw new Error(Y()`command not found: ${argv.command}`)
+                }
+                const cmd = new RegExp(`^${argv.command}(?:\\.cmd)?$`, 'i')
+                const matching = bins.find(b => b.match(cmd))
+                return path.resolve(results.bin, bins[matching] || bins[0])
+              }, err => {
+                if (err.code === 'ENOENT') {
+                  throw new Error(Y()`command not found: ${argv.command}`)
+                } else {
+                  throw err
+                }
+              })
+            } else {
+              return existing
+            }
+          })
         })
       } else {
         // We can skip any extra installation, 'cause everything exists.
@@ -203,6 +206,39 @@ function getNpmCache (opts) {
   }).then(npmPath => {
     return child.exec(npmPath, args)
   }).then(cache => cache.trim())
+}
+
+module.exports._getVersionFromPackageJson = getVersionFromPackageJson
+function getVersionFromPackageJson (spec, cwd) {
+  return require('./get-prefix')(cwd).then(prefix => {
+    const packageJsonPath = path.join(prefix, 'package.json')
+    const packageJsonData = require(packageJsonPath)
+    const dependencies = packageJsonData.dependencies
+    const devDependencies = packageJsonData.devDependencies
+    if (spec in devDependencies) {
+      return devDependencies[spec]
+    } else if (spec in dependencies) {
+      return dependencies[spec]
+    }
+  })
+}
+
+module.exports._appendVersion = appendVersion
+function appendVersion (spec, cwd, opts) {
+  if (opts.cmdHadVersion) {
+    return Promise.resolve(spec)
+  } else {
+    return getVersionFromPackageJson(spec, cwd).then(version => {
+      return `${spec}@${version || 'latest'}`
+    })
+  }
+}
+
+module.exports._appendVersions = appendVersions
+function appendVersions (specs, cwd, opts) {
+  return Promise.all(
+    specs.map(spec => appendVersion(spec, cwd, opts))
+  )
 }
 
 module.exports._buildArgs = buildArgs
